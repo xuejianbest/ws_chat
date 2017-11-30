@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>不忘初心</title>
+<link rel="shortcut icon" href="skin/img/favicon48.ico">
+<script src="skin/js/jquery-3.2.1.min.js"></script>
+<link rel="stylesheet" href="skin/css/chat.css" type="text/css" />
+<link href="skin/bootstrap-3.3.7-dist/css/bootstrap.min.css" rel="stylesheet">
+<!--[if lt IE 9]>
+      <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+<script src="skin/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
+	
+<script type="text/javascript">
+	$(function() {
+		var url = "ws://113.128.104.115:1314/chat/ChatServer";
+		var ws = null;
+		var nickname = "";
+		
+		$('#myModal').modal('show');
+		$('#myModal').on('shown.bs.modal', function () {
+			$("#nickname").val("小新");
+			$("#nickname").focus();
+			$("#nickname_btn").click();
+		})
+		$("form#nickname_form").submit(function(){ //发送昵称，连接聊天室
+			nickname = $("#nickname").val().trim();
+			if (nickname === "") {
+				alert("请输入昵称！");
+			} else {
+				ws_connect();
+				$('#myModal').modal('hide');
+			}
+			return false;
+		});
+		$("#nickname_btn").click(function(){ //输入昵称点击进入触发，进入聊天
+			$("form#nickname_form").submit();
+		});
+			
+		function ws_connect() { //连接ws，建立通讯
+			nickname = window.btoa(unescape(encodeURIComponent(nickname)));
+			if (ws == null) {
+				ws = new WebSocket(url + "?" + nickname);
+				ws.onopen = function() {
+					console.log("连接成功——ws.onopen");
+				};
+				ws.onmessage = function(evt) {
+					var data = evt.data;
+					if(data.trim() === ""){
+						return;
+					}
+					var msg ="";
+					if(data.indexOf("{") == 0){
+						var obj = JSON.parse(data);
+						if(obj["me"] == 1){
+							nickname = obj["nickname"];
+							msg = '<div class="mine_user hidden"><div class="triangle"></div><div class="say">' + obj["msg"] + '</div></div>'
+						}else{
+							msg = '<div class="other_user hidden"><div class="triangle"></div><div class="say">' + obj["msg"] + '</div></div>'
+						}
+						obj["time"]
+					}else{
+						msg = data;
+					}
+					$("#content").append(msg);
+					toBottom();
+				};
+				ws.onclose = function(evt) {
+					console.log("连接关闭——ws.onclose");
+				};
+				ws.onerror = function(evt) {
+					console.log("连接出错——ws.onerror");
+				};
+			}
+		}
+		
+		function setContentHeight(){  //调整显示区域正好填满整个页面
+			var h = $(window).height();
+			var body_pading_top = parseInt($("body.container").css("padding-top").replace("px", ""));
+			var body_pading_bottom = parseInt($("body.container").css("padding-bottom").replace("px", ""));
+			var body_margin_top = parseInt($("body.container").css("margin-top").replace("px", ""));
+			var body_margin_bottom = parseInt($("body.container").css("margin-top").replace("px", ""));
+			var content_margin_h = $("div#content").outerHeight(true) - $("div#content").outerHeight();
+			var inputGroup_h = $("div.input-group").height();
+			var content_h = h - content_margin_h - inputGroup_h - body_pading_top - body_pading_bottom - body_margin_top - body_margin_bottom;
+			$("div#content").css({"height":content_h + "px"});
+		}
+		
+		setContentHeight();
+		$(window).resize(function() { //窗口大小变化触发
+			setContentHeight();
+		});
+		
+		function toBottom(){ //将聊天内容区域滚动条滚到最下面
+			$("div.hidden").each(function(){  //将太宽的显示缩窄
+				$(this).removeClass("hidden");
+				var i = $(this).find(".say:last").width();
+				if(i+5 > $(this).width()*0.85){
+					$(this).find(".say").css("width", "85%");
+				}
+			});
+			var sh = $("div#content").prop("scrollHeight");
+			$("div#content").animate({"scrollTop": sh}, 200);
+		}
+		
+		
+// 		$("input#sendcontent").focus(function(){
+// 			setTimeout(function() {
+// 				$(window).scrollTop(10000);
+// 			}, 200);
+// 		}); 
+		
+// 		$("input#sendcontent").blur(function(){
+// 			var h = $(window).height();
+// 			h = $(window)[0].scrollHeight;
+// 			$("div#content").append("<br> blur： " + h);
+// 		}); 
+		
+		$("span#sendspan").click(function(){ //点击发送按钮发送消息
+			$("form#chat").submit();
+		});
+		
+		$("form#chat").submit(function(){ //聊天内容发送，在输入框按下回车或者点击发送按钮触发
+			if (ws == null) {
+				alert("连接断开，重新刷新页面");
+			} else {
+				var msg = $("#sendcontent").val();
+				if(msg.trim() === ""){
+					return false;
+				}
+				ws.send(msg);
+				$("#sendcontent").val("");
+				
+			}
+			return false;
+		});
+		
+		function HTMLencode(content){ //将'<'、'>'等特殊符号转为html字符实体
+			var temp = document.createElement("div");
+			$(temp).css("display", "none");
+			$(temp).text(content);
+			var res = temp.innerHTML
+			$(temp).remove();
+			return res;
+		}
+		
+		
+		$("textarea#sendcontent").keydown(function(event){ //textarea框回车提交，阻止换行
+			if(event.keyCode == 13 && event.ctrlKey){
+				$("textarea#sendcontent")[0].value += "\n";
+			}else if(event.keyCode == 13){
+				event.preventDefault();
+				$("form#chat").submit();
+			}
+		});
+		
+	})
+</script>
+</head>
+
+<body class="container" style="margin-top: 20px; margin-bottom: 20px;">
+	<form id="chat" class="form-horizontal">
+		<div id="content" class="well" style="height: 500px;">
+			<div class="other_user">
+<!-- 				<div class="name_time"> -->
+<!-- 					小新(11-30 20:54) -->
+<!-- 				</div> -->
+				<div class="triangle"></div>
+				<div class="say">
+					你好吗？
+				</div>
+			</div>
+		</div>
+		<div class="input-group">
+			<textarea id="sendcontent" class="form-control" rows="1"></textarea>
+<!-- 			<input type="text" id="sendcontent" class="form-control"/>  -->
+			<span id="sendspan" class="input-group-addon">&crarr;</span>
+		</div>
+	</form>
+	
+	<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	  <div class="modal-dialog modal-sm" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h4 class="modal-title" id="myModalLabel">输入昵称加入聊天</h4>
+	      </div>
+	      <div class="modal-body">
+	        <form id="nickname_form" class="form-horizontal">
+		        <div class="input-group">
+					<input type="text" id="nickname" class="form-control" placeholder="昵称"/> 
+					<span id="nickname_btn" class="input-group-addon">进入</span>
+				</div>
+			</form>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+</body>
+</html>

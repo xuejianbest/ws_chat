@@ -1,0 +1,43 @@
+div#content {
+	overflow: hidden;
+	font-family: "Arial","Microsoft YaHei","÷ÚÌו","ËÎÌו",sans-serif;
+	font-size: 17px;
+}
+
+div.sysinfo{
+	font-size: 13px;
+}
+
+div.other_user, div.mine_user{
+	overflow: hidden;
+}
+
+div .triangle {
+	height: 0px;
+	width: 0px;
+	border-width: 5px;
+	border-style: solid;
+	margin: 15px 0px 0px 0px;
+}
+div.other_user .triangle {
+	border-color: transparent #d9edf7 transparent transparent;
+	float: left;
+}
+div.mine_user .triangle {
+	border-color: transparent transparent transparent #dff0d8;
+	float: right;
+}
+
+div.say {
+	border-radius: 7px;
+	padding: 5px 8px 5px 8px;
+	margin: 5px 0px;
+}
+div.other_user .say {
+	background-color: #d9edf7;
+	float: left;
+}
+div.mine_user .say {
+	background-color: #dff0d8;
+	float: right;
+}
